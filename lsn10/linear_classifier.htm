@@ -1,0 +1,279 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Simple Linear Classifier</title>
+		<meta charset="utf-8" />
+		<meta name="description" content="" />
+		<meta name="keywords" content="" />
+		<!-- <script src="lib/multidim_array.js"></script>-->
+		<!-- <link rel="stylesheet" href="" /> -->
+		<style>
+		.Row
+{
+    display: table;
+    width: 100%; /*Optional*/
+    table-layout: fixed; /*Optional*/
+    border-spacing: 10px; /*Optional*/
+}
+.Column
+{
+    display: table-cell;
+    /* background-color: red; Optional*/
+}
+
+canvas
+{
+	padding-top: 10px;
+}
+		</style>
+	</head>
+	<body>
+	<script>
+	window.addEventListener('load', init, false);
+var _xLearnDim = 3
+var _yLearnDim = 10
+var _xTestDim = 3
+var _yTestDim = 10
+var _minACoeff = 1.0
+var _maxACoeff = 4.0
+
+var _xBtmMin = 40.
+var _xBtmMax = 80.
+var _xLearnDelta = 10.
+
+var _xUpMin = 0.
+var _xUpMax = 30.
+var _yLearnDelta = 10.
+
+var _CoeffChangeSpeed = 1.0
+
+var aLearn = new Array();
+var aTest;
+
+var dACoeffGuess, dACoeff;
+
+
+var example, ctx;
+var example2, ctx2;
+  
+  
+
+function uniform_float(Min, Max)
+{
+  return Math.random() * Max + Min; 
+}
+
+
+function uniform_int(Min, Max)
+{
+  return Math.floor((Math.random() * Max) + Min); 
+}
+
+
+function GenerateLearn()
+{
+    dACoeff = uniform_float(_minACoeff, _maxACoeff);
+    console.log('dACoeff = ' + dACoeff);
+	aLearn[0] = new Array(_yLearnDim);
+	aLearn[1] = new Array(_yLearnDim);
+	aLearn[2] = new Array(_yLearnDim);
+	var x, y;
+  	for (var i=0;i<_yLearnDim;i++) 
+	{
+	  if(i%2==0) //top set
+	  {
+	    x = uniform_float(_xUpMin, _xUpMax);
+		yUpMin = _yLearnDelta + dACoeff *_xUpMax;		
+	    y = uniform_float(yUpMin, yUpMin + 10.);
+		//y = uniform_float(_xUpMin, _xUpMax);
+	  }
+	  else //bottom set
+	  {
+	    x = uniform_float(_xBtmMin, _xBtmMax);
+	    y = uniform_float(0.1, dACoeff * (x - _xLearnDelta));
+	  }
+	  aLearn[0][i] = x;
+	  aLearn[1][i] = y;
+	  aLearn[2][i] = i%2;
+	  console.log('X = ' + aLearn[0][i]);
+	  console.log('Y = ' + aLearn[1][i]);
+	  console.log('set id = ' + aLearn[2][i]);
+	  if(aLearn[2][i])
+	  {
+		console.log('BOTTOM'); //1
+	  }
+	  else
+	  {
+	    console.log('TOP'); //0
+	  }
+	}
+	
+	/*
+	dACoeff = 8.785328235852608;
+	aLearn[0] = new Array(19.7758, 129.4536, 19.449497, 67.65898);
+	aLearn[1] = new Array(470.5685, 1059.56898, 564.82589, 541.65264);
+	aLearn[2] = new Array(0, 1, 0, 1);
+	*/
+	
+}
+
+function DrawSet(aSet, yDim)
+{
+  //console.log(aSet[0][5]);
+  ctx.fillStyle="#FFFF00";
+  ctx.beginPath(); 
+  ctx.moveTo(0, 0); 
+  ctx.lineTo(0, 400); 
+  ctx.moveTo(0, 0); 
+  ctx.lineTo(400, 0); 
+  ctx.moveTo(0, 0); 
+  ctx.lineTo(100, dACoeff*100); 
+  
+  ctx.stroke(); 
+  
+  for (var i=0;i<_yLearnDim;i++) 
+  {
+	ctx.fillStyle="#FF0000";
+	if(aSet[2][i])
+	{
+		ctx.fillRect(aSet[0][i], aSet[1][i], 4, 4);
+		sSetClass='B';
+	}
+	else
+	{
+		ctx.strokeRect(aSet[0][i], aSet[1][i], 4, 4);
+		sSetClass='T';
+		ctx.fillStyle="#000000";
+	}
+	ctx.fillText('id = '+i+' | X = '+Math.floor(aSet[0][i])+' \nY = '+Math.floor(aSet[1][i])+' | set = '+sSetClass, aSet[0][i]+6, aSet[1][i]+5);
+  }
+  
+  /*
+  ctx.font = "30px Arial";
+ctx.fillText("Hello World",10,50);
+  */
+}
+
+
+function GetTrain()
+{
+  
+  //ctx2.fillStyle="#FFFF00";
+  ctx2.strokeStyle="#000000";
+  ctx2.beginPath(); 
+  ctx2.moveTo(0, 0); 
+  ctx2.lineTo(0, 400); 
+  ctx2.moveTo(0, 0); 
+  ctx2.lineTo(400, 0);
+  ctx2.stroke();  
+
+  console.log('dACoeff = '+dACoeff);
+  dACoeffGuess = uniform_float(_minACoeff, _maxACoeff);
+  dACoeffGuessOld = -1;
+  //dACoeffGuess = 1.;
+  console.log('dACoeffGuess = '+dACoeffGuess);
+  
+  ctx2.beginPath(); 
+  ctx2.moveTo(0, 0); 
+  ctx2.lineTo(100, dACoeff*100); 
+  ctx2.strokeStyle = "#000000"; 
+  ctx2.stroke(); 
+	
+  var iCurrYIndex;
+  for(var i=0; i<_yLearnDim; i++)
+  {
+    iCurrYIndex = uniform_int(0, _yLearnDim);
+	//iCurrYIndex = i;
+	
+	console.log('iCurrYIndex = '+iCurrYIndex);
+  
+    ctx2.beginPath(); 
+    ctx2.moveTo(0, 0); 
+    ctx2.lineTo(200, dACoeffGuess*200);
+	ctx2.strokeStyle = "#0000ff"; 
+    ctx2.stroke();   
+
+	if(dACoeffGuessOld != dACoeffGuess)
+	{
+		dACoeffGuessOld = dACoeffGuess;
+		ctx2.fillText('correction = ' + i, 110, dACoeffGuess*100+10);	
+	}
+	
+	if(aLearn[2][iCurrYIndex])
+	{
+		ctx2.fillStyle="#FF0000";
+		//ctx2.fillRect(aLearn[0][iCurrYIndex], aLearn[1][iCurrYIndex], 4, 4);
+		ctx2.fillRect(aLearn[0][iCurrYIndex], aLearn[1][iCurrYIndex], 4, 4);
+	}
+	else
+	{
+		ctx2.strokeStyle="#000000";
+		ctx2.fillStyle="#000000";
+		//ctx2.strokeRect(aLearn[0][iCurrYIndex], aLearn[1][iCurrYIndex], 4, 4);
+		ctx2.strokeRect(aLearn[0][iCurrYIndex], aLearn[1][iCurrYIndex], 4, 4);
+	}
+		
+	console.log('X = ' + aLearn[0][iCurrYIndex]);
+	console.log('Guessed Y = ' + (dACoeffGuess * aLearn[0][iCurrYIndex]));
+	console.log('Real Y = ' + aLearn[1][iCurrYIndex]);
+	if(aLearn[2][iCurrYIndex]==1)
+	{
+	  console.log('BOTTOM');
+	  sSetClass = 'B';
+	}
+	else
+	{
+	  console.log('TOP');
+	  sSetClass = 'T';
+	}
+	ctx2.fillText('id = '+i+' | X = '+Math.floor(aLearn[0][iCurrYIndex])+' \nY = '+Math.floor(aLearn[1][iCurrYIndex])+' | set = '+sSetClass, aLearn[0][iCurrYIndex]+6, aLearn[1][iCurrYIndex]+5);
+	
+	if(((dACoeffGuess * aLearn[0][iCurrYIndex] >= aLearn[1][iCurrYIndex]) && (aLearn[2][iCurrYIndex]==0)) || ((dACoeffGuess * aLearn[0][iCurrYIndex] < aLearn[1][iCurrYIndex]) && (aLearn[2][iCurrYIndex]==1)))
+	{
+		//correct coeff UP
+		//dACoeffGuess += 0.1
+		//dDeltaCoeff = Math.abs((aLearn[1][iCurrYIndex] - dACoeffGuess * aLearn[0][iCurrYIndex])) / aLearn[0][iCurrYIndex];
+		dDeltaCoeff = (aLearn[1][iCurrYIndex] - dACoeffGuess * aLearn[0][iCurrYIndex]) / aLearn[0][iCurrYIndex];
+		console.log('dDeltaCoeff = '+dDeltaCoeff);
+		
+		dACoeffGuess += _CoeffChangeSpeed * dDeltaCoeff
+		console.log('dACoeffGuess new = ' + dACoeffGuess);
+	}	
+  }
+}
+
+function init() 
+{
+
+example = document.getElementById("example");
+ctx = example.getContext('2d');
+example.width  = 640;
+example.height = 480;
+
+
+example2 = document.getElementById("example2");
+ctx2 = example2.getContext('2d');
+example2.width  = 640;
+example2.height = 480;
+  
+
+GenerateLearn();
+
+DrawSet(aLearn, _yLearnDim);
+
+GetTrain();
+
+//GetTest(aTest);
+
+}
+
+
+</script>
+	
+<h2>Simple Linear Classifier</h2>
+<div class="Row">
+    <div class="Column">Generate Learn Set<br /><canvas id='example'>Обновите браузер</canvas></div>
+    <div class="Column">Learning Perceptron<br /><canvas id='example2'>Обновите браузер</canvas></div>
+</div>
+</body>
+</html>
